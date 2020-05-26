@@ -44,7 +44,6 @@ def geraEntrada(omega=0.0):
     teta2 = 0.0           #Ângulo entre uma das ligaçẽos O-H e o eixo y
     dTeta = 10.*np.pi/180 #Passo da variação de teta1 e teta2
     R = 8.0               #Distância entre O-O e Kr
-    #dR = 0.1              #Passo da variação de R
 
     atom = ['O','O','H','H','Kr']
     x = [0.0, 0.0, 0.0, 0.0, 0.0]
@@ -97,6 +96,7 @@ def SEP(omega):
     t0 = time.time()
     os.system('bash roda-tudo.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian: ', time.time()-t0)
+    peso = np.repeat(1.0, len(SCF))
 
     for k in range(36):
         N = np.arange(21)
@@ -114,11 +114,15 @@ def SEP(omega):
         #print(SCF)
 
     DFT = SCF[1:,:]
+    MSE = (MP4 - DFT)
     #print(DFT)
-    dE = np.abs(MP4 - DFT)
     print('Menores energias: ',minimo(MP4), minimo(DFT))
-    print(np.amax(dE))
-    return np.amax(dE)
+    dE = np.abs(MP4 - DFT)
+    print('Erro máximo: ', np.amax(dE))
+    dE2 = dE*dE
+    MSE = np.dot(dE2,peso)/len(dE2)
+    print("Erro médio quadrático: ", MSE)
+    return MSE
 
 #Definindo rotina de otimização
 print('Iniciando otimização...')
