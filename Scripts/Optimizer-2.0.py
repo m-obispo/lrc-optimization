@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.optimize as opt
 import os
+import sys
 import time
 
 #import matplotlib.pyplot as plt
@@ -29,8 +30,11 @@ def cabecalho(r, np, fu, b, omega=0.0):
                +" int=ultrafine counterpoise=2 Scan\n\nTCC\n\n0 1\n"
 #
 
-funct = 'lc-blyp'
+funct = sys.argv[1]
 base = 'aug-cc-PVTz'
+
+M = 2 #No. de primeiros ângulos
+N = 21 #No. de pontos radiais
 
 def geraEntrada(omega=0.0):
     ram = '8'
@@ -44,18 +48,17 @@ def geraEntrada(omega=0.0):
     teta2 = 0.0           #Ângulo entre uma das ligaçẽos O-H e o eixo y
     dTeta = 10.*np.pi/180 #Passo da variação de teta1 e teta2
     R = 8.0               #Distância entre O-O e Kr
-    #dR = 0.1              #Passo da variação de R
 
     atom = ['O','O','H','H','Kr']
     x = [0.0, 0.0, 0.0, 0.0, 0.0]
     y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1), d*np.sin(chi)*np.cos(teta2), R]
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
 
-    for t in range(36):
+    for t in [0,17]: #range(M):
         x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
         y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
         z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-        with open('../Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
+        with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
             h.write(cabecalho(ram,nproc,funct,base,omega))
             print(t)
             for j in range(len(atom)-1):
@@ -68,63 +71,74 @@ def geraEntrada(omega=0.0):
 MP4 = np.zeros(21)
 #Lê os logs com os dados da SEP de referência (MP4)
 print('Lendo energias de referência (MP4)...')
-for k in range(36):
-    N = np.arange(21)
+for k in [0,17]: #range(M):
     R = np.arange(3,5.1,0.1)
     mp4 = []
-
     keywords = ['Counterpoise', 'corrected', 'energy']
-    with open('../Logs/H2O2-Kr_'+str(k)+'.log','r') as g:
+    with open('../Logs/Logs/H2O2-Kr_'+str(k)+'.log','r') as g:
         for line in g:
             linha = line.split()
+            #print(linha)
             if linha[:3] == keywords:
-                #print(linha, linha[4])
-                mp4.append(float(linha[4]))
-                #print('Energia '+str(k)+':',float(linha[4]))
+                # print(linha, linha[-1])
+                mp4.append(float(linha[-1]))
+                # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
 
     MP4 = np.vstack((MP4,np.array(mp4)))
 
 MP4 = MP4[1:,:]
 print('Sucesso!')
 
+vetorUnit = np.repeat(1.,N)
+
 #Lê os logs com os dados da SEP a ser otimizada (DFT)
 #e realiza o cálculo da diferença entre esta e a SEP de referência
 
-def SEP(omega):
-    global R, DFT, MP4, dE
+def SEP(wPeso):
+    global R, DFT, MP4, dE, MSE
+    omega = wPeso[0]    #Valor de omega a ser otimizado
+    peso = wPeso[1:]    #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
-    geraEntrada(omega)       #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntrada(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
     t0 = time.time()
-    os.system('bash roda-tudo.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
+    os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian: ', time.time()-t0)
 
-    for k in range(36):
+    for k in [0,17]: #range(M):
         N = np.arange(21)
         R = np.arange(3,5.1,0.1)
         scf = []
         keywords = ['Counterpoise:', 'corrected', 'energy']
-        with open('../Logs-'+funct+'/H2O2-Kr_'+str(k)+'.log','r') as g:
+        with open('../Logs/Logs-'+funct+'/H2O2-Kr_'+str(k)+'.log','r') as g:
             for line in g:
                 linha = line.split()
                 if linha[:3] == keywords:
-               	    scf.append(float(linha[4]))
-                    #print(float(linha[4])/219474.6305)
+               	    scf.append(float(linha[-1]))
+                    # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
 
         SCF = np.vstack((SCF,np.array(scf)))
         #print(SCF)
 
     DFT = SCF[1:,:]
+    MSE = (MP4 - DFT)
     #print(DFT)
     dE = np.abs(MP4 - DFT)
+    dE2 = dE*dE
+    MSE = (dE2*pesoInicial).mean()
+
+    print('Erro máximo: ', np.amax(dE))
     print('Menores energias: ',minimo(MP4), minimo(DFT))
-    print(np.amax(dE))
-    return np.amax(dE)
+    print("Erro médio quadrático: ", MSE)
+
+    return MSE
 
 #Definindo rotina de otimização
 print('Iniciando otimização...')
 ti = time.time()
-#resultado = opt.minimize(SEP, 0.3, method="BFGS", options = {'disp':True, 'eps':1e-3})
-resultado = opt.minimize(SEP, 0.8, method="Nelder-Mead", options = {'disp':True, 'eps':1e-3,'fatol': 1e-7})
+# pesoInicial = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
+pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
+# resultado = opt.minimize(SEP, np.append(0.25, pesoInicial), method="BFGS", options = {'disp':True, 'eps':1e-3})
+resultado = opt.minimize(SEP, np.append(0.25, pesoInicial), method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
 tf = time.time() - ti
 
 wOpt = resultado['x']# = 0.2500 para wb97xd

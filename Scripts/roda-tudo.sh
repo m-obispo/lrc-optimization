@@ -17,7 +17,7 @@ source /home/matheus/.prep-g09.sh
 #      echo Pronto!
 # done
 
-i=4
+i=0
 
 while [ $i -le 35 ]; do
     echo Rodando a entrada $i no Gaussian 09...
@@ -25,7 +25,8 @@ while [ $i -le 35 ]; do
     pid=$!
     # If this script is killed, kill the `g09'.
     trap "kill $pid 2> /dev/null" EXIT
-
+    
+    sleep 1
     # While g16 is running...
     while kill -0 $pid 2> /dev/null; do
         tail -f --pid=$pid /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i.log
