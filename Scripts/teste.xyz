@@ -1,0 +1,40 @@
+%mem=2GB
+%nproc=2
+#p mp4/aug-cc-PVTz int=ultrafine Scan
+
+PTCC
+
+0 1
+O   0.0   0.0   0.725
+%mem=2GB
+%nproc=2
+#p mp4/aug-cc-PVTz int=ultrafine Scan
+
+PTCC
+
+0 1
+O   0.0   0.0   -0.725
+%mem=2GB
+%nproc=2
+#p mp4/aug-cc-PVTz int=ultrafine Scan
+
+PTCC
+
+0 1
+H   0.0   0.9187205947411183   1.0235104165661992
+%mem=2GB
+%nproc=2
+#p mp4/aug-cc-PVTz int=ultrafine Scan
+
+PTCC
+
+0 1
+H   0.0   0.9187205947411183   -1.0235104165661992
+%mem=2GB
+%nproc=2
+#p mp4/aug-cc-PVTz int=ultrafine Scan
+
+PTCC
+
+0 1
+Kr   0.0   8.0   0.0
