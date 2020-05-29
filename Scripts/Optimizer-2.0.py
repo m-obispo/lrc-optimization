@@ -1,16 +1,21 @@
 import numpy as np
-import scipy.optimize as opt
+from scipy.optimize import minimize
 import os
 import sys
 import time
-
+#Bibliotecas gráficas
 #import matplotlib.pyplot as plt
 #from mpl_toolkits.mplot3d import Axes3D
 
+#Abre o arquivo .log do programa de otimização
+log = open('../Optimizer-log.txt','w')
+
 def minimo(arr):
+    '''Retorna o valor mínimo de um array e sua posição'''
     return (np.amin(arr), np.where(arr == np.amin(arr)))
 
 def cabecalho(r, np, fu, b, omega=0.0):
+    '''Imprime o cabeçalho de uma entrada do Gaussian'''
     if omega >= 0.0 and omega < 1.0:
         omegaFormat = '0'+str(int(omega*10**9))
         omegaFormat = omegaFormat[:5]+'00000'
@@ -33,13 +38,18 @@ def cabecalho(r, np, fu, b, omega=0.0):
 funct = sys.argv[1]
 base = 'aug-cc-PVTz'
 
-M = 2 #No. de primeiros ângulos
-N = 21 #No. de pontos radiais
+log.write("Funcional: "+funct+
+        "\nBase: "+basis)
 
+M = 36 #No. de pontos das curvas angulares
+N = 21 #No. de pontos das curvas radiais
+
+print('Gerando Entradas...')
+log.write('Gerando Entradas...')
 def geraEntrada(omega=0.0):
+    '''Gera as entradas para o Gaussian com o valor de ômega dado'''
     ram = '8'
     nproc = '8'
-    print('Gerando Entradas')
     #Distâncias (em angstroms) e ângulos (em graus) da geometria do sistema H2O2-Kr
     D = 1.450             #Distância O-O
     d = 0.966             #Distância O-H
@@ -71,6 +81,7 @@ def geraEntrada(omega=0.0):
 MP4 = np.zeros(21)
 #Lê os logs com os dados da SEP de referência (MP4)
 print('Lendo energias de referência (MP4)...')
+log.write('Lendo energias de referência (MP4)...')
 for k in [0,17]: #range(M):
     R = np.arange(3,5.1,0.1)
     mp4 = []
@@ -83,29 +94,41 @@ for k in [0,17]: #range(M):
                 # print(linha, linha[-1])
                 mp4.append(float(linha[-1]))
                 # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
+                log.write('Arquivo '+g.name+' lido com sucesso!'+
+                        '\nEnergia '+str(k)+':',float(linha[-1]/219474.6305))
 
     MP4 = np.vstack((MP4,np.array(mp4)))
 
 MP4 = MP4[1:,:]
 print('Sucesso!')
 
+print('Declarando parâmetros da otimização...')
+log.write('Declarando parâmetros da otimização...')
 vetorUnit = np.repeat(1.,N)
+pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
+# pesoAngular = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
+# pesoTotal = np.array([x*vetorUnit for x in pesoTotal]) 
+count = 0 #Conta o número de iterações do Gaussian
 
-#Lê os logs com os dados da SEP a ser otimizada (DFT)
-#e realiza o cálculo da diferença entre esta e a SEP de referência
+def SEP(omega, peso = np.repeat(1.0, N)):
 
-def SEP(wPeso):
-    global R, DFT, MP4, dE, MSE
-    omega = wPeso[0]    #Valor de omega a ser otimizado
-    peso = wPeso[1:]    #Valor dos pesos do erro médio quadrático para cada coordenada angular
+    '''Lê os logs com os dados da SEP a ser otimizada (DFT)
+    e realiza o cálculo da diferença entre esta e a SEP de referência'''
+
+    global R, DFT, MP4, dE, MSE   
+    #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
+    log.write('Iteração no. '+str(count)+' iniciada')
+
     geraEntrada(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
     t0 = time.time()
     os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
-    print('Tempo de execução do Gaussian: ', time.time()-t0)
+    print('Tempo de execução do Gaussian (s): ', time.time()-t0)
+
+    log.write('Iteração no. '+str(count)+' finalizada!'+
+            '\nTempo de execução do Gaussian (s): '+str(time.time()-t0))
 
     for k in [0,17]: #range(M):
-        N = np.arange(21)
         R = np.arange(3,5.1,0.1)
         scf = []
         keywords = ['Counterpoise:', 'corrected', 'energy']
@@ -115,6 +138,8 @@ def SEP(wPeso):
                 if linha[:3] == keywords:
                	    scf.append(float(linha[-1]))
                     # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
+                    log.write('Arquivo '+g.name+' lido com sucesso!'+
+                            '\nEnergia '+str(k)+':',float(linha[-1]/219474.6305))
 
         SCF = np.vstack((SCF,np.array(scf)))
         #print(SCF)
@@ -124,26 +149,28 @@ def SEP(wPeso):
     #print(DFT)
     dE = np.abs(MP4 - DFT)
     dE2 = dE*dE
-    MSE = (dE2*pesoInicial).mean()
+    MSE = (dE2*peso).mean()
 
     print('Erro máximo: ', np.amax(dE))
     print('Menores energias: ',minimo(MP4), minimo(DFT))
     print("Erro médio quadrático: ", MSE)
+
+    log.write('Erro máximo: {}'.format(np.amax(dE)))
+    log.write('Menores energias: {}, {}'.format(minimo(MP4), minimo(DFT)))
+    log.write("Erro médio quadrático: {}".format(MSE))
 
     return MSE
 
 #Definindo rotina de otimização
 print('Iniciando otimização...')
 ti = time.time()
-# pesoInicial = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
-pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
-# resultado = opt.minimize(SEP, np.append(0.25, pesoInicial), method="BFGS", options = {'disp':True, 'eps':1e-3})
-resultado = opt.minimize(SEP, np.append(0.25, pesoInicial), method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
+# resultado = minimize(SEP, np.append(0.25, pesoInicial), method="BFGS", options = {'disp':True, 'eps':1e-3})
+resultado = minimize(SEP, 0.25, args = pesoInicial, method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
 tf = time.time() - ti
 
-wOpt = resultado['x']# = 0.2500 para wb97xd
-                     # = 1.3575 para lc-blyp
-		     # = 0.5588 para lc-wpbe
+wOpt = resultado['x']# = 0.25 para wb97xd
+                     # = 1.35 para lc-blyp
+		             # = 0.55 para lc-wpbe
 
 tfh = int(tf/60/60)
 tfm = int((tf/60/60 - int(tf/60/60))*60)
@@ -168,6 +195,19 @@ with open('../resultado_'+funct+'.txt', 'w') as h:
             #h.write(str(R[j])+"       "+str(DFT[i,j])+"       "+str(MP4[i,j])+"\n")
             h.write("%0.9f   %0.9f   %0.9f\n"%(R[j], DFT[i,j], MP4[i,j]))
     h.write('-----------------------------------------------\n')
+
+log.write('----------------RESULTADOS FINAIS--------------\n')
+log.write('Tempo total de execução da otimização: '+str_TF+'\n\n')
+for i in resultado:
+    log.write(str(i)+": "+str(resultado[i])+"\n")
+for i in range(len(DFT[:,0])):
+    log.write('\n----------------- TETA = '+str(float(i*10))+' ------------------\n')
+    log.write('\n R - ------- DFT -------- ------- MP4 ---------\n')
+    for j in range(len(R)):
+        #print(i,j)
+        #h.write(str(R[j])+"       "+str(DFT[i,j])+"       "+str(MP4[i,j])+"\n")
+        log.write("%0.9f   %0.9f   %0.9f\n"%(R[j], DFT[i,j], MP4[i,j]))
+log.write('-----------------------------------------------\n')
 
 #Plot 3D
 #Teta = np.arange(0,360,10)
@@ -211,6 +251,8 @@ with open('../resultado_'+funct+'.txt', 'w') as h:
 # graf4.legend(fontsize = '18')
 #
 # plt.show()
+
+log.close()
 
 #       wb97xd
 #      fun: 7.950941737661435e-06
