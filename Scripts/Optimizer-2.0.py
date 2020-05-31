@@ -39,14 +39,14 @@ funct = sys.argv[1]
 base = 'aug-cc-PVTz'
 
 log.write("Funcional: "+funct+
-        "\nBase: "+basis)
+        "\nBase: "+base)
 
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
 print('Gerando Entradas...')
-log.write('Gerando Entradas...')
-def geraEntrada(omega=0.0):
+log.write('\nGerando Entradas...')
+def geraEntradas(omega=0.0):
     '''Gera as entradas para o Gaussian com o valor de ômega dado'''
     ram = '8'
     nproc = '8'
@@ -64,7 +64,7 @@ def geraEntrada(omega=0.0):
     y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1), d*np.sin(chi)*np.cos(teta2), R]
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
 
-    for t in [0,17]: #range(M):
+    for t in range(M): #[0,17]:
         x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
         y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
         z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
@@ -81,8 +81,8 @@ def geraEntrada(omega=0.0):
 MP4 = np.zeros(21)
 #Lê os logs com os dados da SEP de referência (MP4)
 print('Lendo energias de referência (MP4)...')
-log.write('Lendo energias de referência (MP4)...')
-for k in [0,17]: #range(M):
+log.write('\n\nLendo energias de referência (MP4)...')
+for k in range(M): #[0,17]: 
     R = np.arange(3,5.1,0.1)
     mp4 = []
     keywords = ['Counterpoise', 'corrected', 'energy']
@@ -94,8 +94,7 @@ for k in [0,17]: #range(M):
                 # print(linha, linha[-1])
                 mp4.append(float(linha[-1]))
                 # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
-                log.write('Arquivo '+g.name+' lido com sucesso!'+
-                        '\nEnergia '+str(k)+':',float(linha[-1]/219474.6305))
+                log.write('\nArquivo '+g.name+' lido com sucesso!')
 
     MP4 = np.vstack((MP4,np.array(mp4)))
 
@@ -103,32 +102,33 @@ MP4 = MP4[1:,:]
 print('Sucesso!')
 
 print('Declarando parâmetros da otimização...')
-log.write('Declarando parâmetros da otimização...')
+log.write('\n\nDeclarando parâmetros da otimização...')
 vetorUnit = np.repeat(1.,N)
-pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
-# pesoAngular = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
-# pesoTotal = np.array([x*vetorUnit for x in pesoTotal]) 
+#pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
+pesoAngular = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
+pesoTotal = np.array([x*vetorUnit for x in pesoAngular]) 
 count = 0 #Conta o número de iterações do Gaussian
 
-def SEP(omega, peso = np.repeat(1.0, N)):
+def SEP(omega):
 
     '''Lê os logs com os dados da SEP a ser otimizada (DFT)
     e realiza o cálculo da diferença entre esta e a SEP de referência'''
 
-    global R, DFT, MP4, dE, MSE   
+    global R, DFT, MP4, dE, MSE, count
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
-    log.write('Iteração no. '+str(count)+' iniciada')
+    log.write('\n\nIteração no. '+str(count)+' iniciada')
 
-    geraEntrada(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntradas(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
     t0 = time.time()
-    os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
+    #os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
+    log.write('\nIteração no. '+str(count)+' finalizada!'+
+            '\nTempo de execução do Gaussian (s): '+str(time.time()-t0)+'\n')
+            
+    count += 1
 
-    log.write('Iteração no. '+str(count)+' finalizada!'+
-            '\nTempo de execução do Gaussian (s): '+str(time.time()-t0))
-
-    for k in [0,17]: #range(M):
+    for k in range(M): #[0,17]: 
         R = np.arange(3,5.1,0.1)
         scf = []
         keywords = ['Counterpoise:', 'corrected', 'energy']
@@ -138,34 +138,33 @@ def SEP(omega, peso = np.repeat(1.0, N)):
                 if linha[:3] == keywords:
                	    scf.append(float(linha[-1]))
                     # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
-                    log.write('Arquivo '+g.name+' lido com sucesso!'+
-                            '\nEnergia '+str(k)+':',float(linha[-1]/219474.6305))
+            log.write('\nArquivo '+g.name+' lido com sucesso!')
+                    #print(scf)
 
         SCF = np.vstack((SCF,np.array(scf)))
         #print(SCF)
 
     DFT = SCF[1:,:]
-    MSE = (MP4 - DFT)
-    #print(DFT)
+    print(DFT)
     dE = np.abs(MP4 - DFT)
     dE2 = dE*dE
-    MSE = (dE2*peso).mean()
+    MSE = (dE2*pesoTotal).mean()
 
     print('Erro máximo: ', np.amax(dE))
     print('Menores energias: ',minimo(MP4), minimo(DFT))
     print("Erro médio quadrático: ", MSE)
 
-    log.write('Erro máximo: {}'.format(np.amax(dE)))
-    log.write('Menores energias: {}, {}'.format(minimo(MP4), minimo(DFT)))
-    log.write("Erro médio quadrático: {}".format(MSE))
+    log.write('\nErro máximo: {}'.format(np.amax(dE)))
+    log.write('\nMenores energias: {}, {}'.format(minimo(MP4), minimo(DFT)))
+    log.write("\nErro médio quadrático: {}".format(MSE))
 
     return MSE
 
 #Definindo rotina de otimização
-print('Iniciando otimização...')
+print('\n\nIniciando otimização...')
 ti = time.time()
 # resultado = minimize(SEP, np.append(0.25, pesoInicial), method="BFGS", options = {'disp':True, 'eps':1e-3})
-resultado = minimize(SEP, 0.25, args = pesoInicial, method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
+resultado = minimize(SEP, 0.25, method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
 tf = time.time() - ti
 
 wOpt = resultado['x']# = 0.25 para wb97xd
@@ -196,7 +195,7 @@ with open('../resultado_'+funct+'.txt', 'w') as h:
             h.write("%0.9f   %0.9f   %0.9f\n"%(R[j], DFT[i,j], MP4[i,j]))
     h.write('-----------------------------------------------\n')
 
-log.write('----------------RESULTADOS FINAIS--------------\n')
+log.write('\n\n----------------RESULTADOS FINAIS--------------\n')
 log.write('Tempo total de execução da otimização: '+str_TF+'\n\n')
 for i in resultado:
     log.write(str(i)+": "+str(resultado[i])+"\n")
