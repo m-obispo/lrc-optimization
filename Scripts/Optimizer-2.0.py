@@ -121,7 +121,7 @@ def SEP(omega):
 
     geraEntradas(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
     t0 = time.time()
-    #os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
+    os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
     log.write('\nIteração no. '+str(count)+' finalizada!'+
             '\nTempo de execução do Gaussian (s): '+str(time.time()-t0)+'\n')
