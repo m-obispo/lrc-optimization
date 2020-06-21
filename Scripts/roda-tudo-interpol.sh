@@ -41,7 +41,7 @@ done
 
 i=85
 
-while [ $i -le 35 ]; do
+while [ $i -le 285 ]; do
     echo Rodando a entrada $i no Gaussian 09...
     g09 /home/matheus/.tcc/Inputs/Inputs-$1/H2O2-Kr_$i.com /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i.log &
     pid=$!
@@ -61,7 +61,49 @@ while [ $i -le 35 ]; do
     sleep 10
 done
 
+i=0
 
+while [ $i -le 36 ]; do
+    echo Rodando a entrada $i no Gaussian 09...
+    g09 /home/matheus/.tcc/Inputs/Inputs-$1/H2O2-Kr_$i-1.com /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i-1.log &
+    pid=$!
+    # If this script is killed, kill the `g09'.
+    trap "kill $pid 2> /dev/null" EXIT
+    
+    sleep 1
+    # While g16 is running...
+    while kill -0 $pid 2> /dev/null; do
+        tail -f --pid=$pid /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i.log
+        sleep 1
+    done
+
+    #formchk -3 /home/matheus/.tcc/chk/H2O2-Kr_$i.chk /home/matheus/.tcc/chk/H2O2-Kr_$i.fchk
+    echo Pronto!
+    i=$(( i+1 ))
+    sleep 10
+done
+
+i=85
+
+while [ $i -le 285 ]; do
+    echo Rodando a entrada $i no Gaussian 09...
+    g09 /home/matheus/.tcc/Inputs/Inputs-$1/H2O2-Kr_$i.com /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i-1.log &
+    pid=$!
+    # If this script is killed, kill the `g09'.
+    trap "kill $pid 2> /dev/null" EXIT
+    
+    sleep 1
+    # While g16 is running...
+    while kill -0 $pid 2> /dev/null; do
+        tail -f --pid=$pid /home/matheus/.tcc/Logs/Logs-$1/H2O2-Kr_$i.log
+        sleep 1
+    done
+
+    #formchk -3 /home/matheus/.tcc/chk/H2O2-Kr_$i.chk /home/matheus/.tcc/chk/H2O2-Kr_$i.fchk
+    echo Pronto!
+    i=$(( i+10 ))
+    sleep 10
+done
 
 # for i in $( ls *.log ); do
 #      mv $i ./logs/

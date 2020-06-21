@@ -15,7 +15,17 @@ def minimo(arr):
     return (np.amin(arr), np.where(arr == np.amin(arr)))
 
 def cabecalho(r, np, fu, b, omega=0.0):
-    '''Imprime o cabeçalho de uma entrada do Gaussian'''
+    '''
+    Imprime o cabeçalho de uma entrada do Gaussian.
+    ----------------------------------------------------- 
+    Params:
+
+    r : (str) Quantidade de Memória RAM máxima a ser utilizada nos cálculos.
+    np: (str) Número de núcleos do processador a serem usados nos cálculos. 
+    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+    b: (str) Conjunto de base para os orbitais.
+    omega = 0.0: (float) Valor do parâmetro de longo alcance para funcionais da LRC-DFT
+    '''
     if omega >= 0.0 and omega < 1.0:
         omegaFormat = '0'+str(int(omega*10**9))
         omegaFormat = omegaFormat[:5]+'00000'
@@ -38,44 +48,109 @@ def cabecalho(r, np, fu, b, omega=0.0):
 funct = sys.argv[1]
 base = 'aug-cc-PVTz'
 
-log.write("Funcional: "+funct+
+log.write("\nFuncional: "+funct+
         "\nBase: "+base)
 
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
+interpol = True #Habilita o modo de interpolação detalhada ao redor de pontos de mínimo
+
+log.write("\nNo. de pontos das curvas angulares: {}".format(M)+
+          "\nNo. de pontos das curvas radiais: {}".format(N))
+if interpol: log.write('Pontos adicionais ao redor dos mínimos serão calculados')
+
 print('Gerando Entradas...')
 log.write('\nGerando Entradas...')
 def geraEntradas(omega=0.0):
-    '''Gera as entradas para o Gaussian com o valor de ômega dado'''
+    '''
+    Gera as entradas para o Gaussian com o valor de ômega dado.
+    -----------------------------------------------------
+    Params:
+    
+    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    '''
     ram = '8'
     nproc = '8'
     #Distâncias (em angstroms) e ângulos (em graus) da geometria do sistema H2O2-Kr
-    D = 1.450             #Distância O-O
-    d = 0.966             #Distância O-H
-    chi = 108.0*np.pi/180 #Ângulo O-O-H
-    teta1 = 0.0           #Ângulo entre uma das ligações O-H e o eixo y
-    teta2 = 0.0           #Ângulo entre uma das ligaçẽos O-H e o eixo y
-    dTeta = 10.*np.pi/180 #Passo da variação de teta1 e teta2
-    R = 8.0               #Distância entre O-O e Kr
+    D = 1.450                   #Distância O-O
+    d = 0.966                   #Distância O-H
+    chi = 108.0*np.pi/180.0     #Ângulo O-O-H
+    teta1 = 0.0                 #Ângulo entre uma das ligações O-H e o eixo y
+    teta2 = 0.0                 #Ângulo entre uma das ligaçẽos O-H e o eixo y
+    dTeta = 10.0*np.pi/180.0    #Passo da variação de teta1 e teta2
+    R = 8.0                     #Distância entre O-O e Kr
 
     atom = ['O','O','H','H','Kr']
     x = [0.0, 0.0, 0.0, 0.0, 0.0]
     y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1), d*np.sin(chi)*np.cos(teta2), R]
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            
+    if interpol:
+        for t in range(M):
+            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
+                h.write(cabecalho(ram,nproc,funct,base,omega))
+                print(t)
+                for j in range(len(atom)-1):
+                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+                h.write('Kr(Fragment=2)   0.    R1    0.')
+                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
+                h.write("\n")
 
-    for t in range(M): #[0,17]:
-        x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-        y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-        z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-        with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-            h.write(cabecalho(ram,nproc,funct,base,omega))
-            print(t)
-            for j in range(len(atom)-1):
-                h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-            h.write('Kr(Fragment=2)   0.    R1    0.')
-            h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
-            h.write("\n")
+        for t in range(M):
+            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'_1.com','w') as h:
+                h.write(cabecalho(ram,nproc,funct,base,omega))
+                print(t)
+                for j in range(len(atom)-1):
+                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+                h.write('Kr(Fragment=2)   0.    R1    0.')
+                h.write('\n Variables:\n R1 3.25 S 10 +0.1\n')
+                h.write("\n")
+    
+        for t in np.arange(8.5, 28.5):
+            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
+                h.write(cabecalho(ram,nproc,funct,base,omega))
+                print(t)
+                for j in range(len(atom)-1):
+                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+                h.write('Kr(Fragment=2)   0.    R1    0.')
+                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
+                h.write("\n")
+
+        for t in np.arange(8.5, 28.5):
+            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
+                h.write(cabecalho(ram,nproc,funct,base,omega))
+                print(t)
+                for j in range(len(atom)-1):
+                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+                h.write('Kr(Fragment=2)   0.    R1    0.')
+                h.write('\n Variables:\n R1 3.25 S 10 +0.1\n')
+                h.write("\n")
+    else:
+        for t in range(M):
+            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
+                h.write(cabecalho(ram,nproc,funct,base,omega))
+                print(t)
+                for j in range(len(atom)-1):
+                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+                h.write('Kr(Fragment=2)   0.    R1    0.')
+                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
+                h.write("\n")
 
 
 MP4 = np.zeros(21)
@@ -109,11 +184,19 @@ pesoAngular = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.rep
 pesoTotal = np.array([x*vetorUnit for x in pesoAngular]) 
 count = 0 #Conta o número de iterações do Gaussian
 
+# def rovibes():
+#     '''TBA'''
+#     return 0
+
 def SEP(omega):
-
-    '''Lê os logs com os dados da SEP a ser otimizada (DFT)
-    e realiza o cálculo da diferença entre esta e a SEP de referência'''
-
+    '''
+    Lê os logs com os dados da SEP a ser otimizada (DFT) e realiza o cálculo da diferença entre esta e a SEP de referência.
+    -----------------------------------------------------
+    Params:
+    
+    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    
+    '''
     global R, DFT, MP4, dE, MSE, count
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
