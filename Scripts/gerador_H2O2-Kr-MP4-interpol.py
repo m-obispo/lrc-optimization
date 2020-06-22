@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 #i_file = sys.argv[1]
 #funct = sys.argv[2]
@@ -15,20 +16,33 @@ base = 'aug-cc-PVTz'
 
 interpol = True
 
+# gaussian_version = 'g16' 
+# TCC_dir = '/home/matheus/TCC'
+
+gaussian_version = 'g09' 
+TCC_dir = '/home/matheus/.tcc'
+
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
-def cabecalho(r,np,fu,b, i):
-    return "%mem="+r+"GB\n%nproc="+np+"\n%Chk=/home/matheus/.tcc/chk/H2O2-Kr_"+str(i)+".chk"+\
+def cabecalho(r,np,fu,b):
+    '''
+    Imprime o cabeçalho de uma entrada do Gaussian.
+    ----------------------------------------------------- 
+    Params:
+
+    r : (str) Quantidade de Memória RAM máxima a ser utilizada nos cálculos.
+    np: (str) Número de núcleos do processador a serem usados nos cálculos. 
+    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+    b: (str) Conjunto de base para os orbitais.
+    '''
+    return "%mem="+r+"GB\n%nproc="+np+\
             "\n#p "+fu+"/"+b+" int=ultrafine counterpoise=2 Scan\n\nTCC\n\n0,1 0,1 0,1\n"
 
-def geraEntradas(omega=0.0):
+def geraEntradasMP4():
     '''
-    Gera as entradas para o Gaussian com o valor de ômega dado.
+    Gera as entradas para o Gaussian.
     -----------------------------------------------------
-    Params:
-    
-    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
     '''
     ram = '8'
     nproc = '8'
@@ -45,14 +59,13 @@ def geraEntradas(omega=0.0):
     x = [0.0, 0.0, 0.0, 0.0, 0.0]
     y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1), d*np.sin(chi)*np.cos(teta2), R]
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            
-    if interpol:
-        for t in range(M):
+    
+    for t in range(M):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
@@ -60,12 +73,13 @@ def geraEntradas(omega=0.0):
                 h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
                 h.write("\n")
 
+    if interpol:
         for t in range(M):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'-1.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
@@ -78,7 +92,7 @@ def geraEntradas(omega=0.0):
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
@@ -91,7 +105,7 @@ def geraEntradas(omega=0.0):
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'-1.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
@@ -104,7 +118,7 @@ def geraEntradas(omega=0.0):
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
@@ -114,7 +128,43 @@ def geraEntradas(omega=0.0):
 
     #Pai, te amo
 
-geraEntradas()
+def rodaTudo(gv,dir,fu, interpolation = False):
+    '''
+    Roda todas as entradas geradas na versão do Gaussian especificada.
+    ----------------------------------------------------- 
+    Params:
+
+    gv : (str) Versão do Gaussian (commando de inicialização).
+    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
+    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+    '''
+    for i in range(M):
+        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+        os.system('sleep 10')
+    if interpolation:
+        for i in range(M):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+            os.system('sleep 10')
+        for i in np.arange(8.5, 28.5):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+            os.system('sleep 10')
+        for i in np.arange(8.5, 28.5):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+            os.system('sleep 10')
+
+geraEntradasMP4()
+
+rodaTudo(gaussian_version,TCC_dir,funct, interpolation = interpol)
+
+
 #0 1
 #O
 #O       1        1.45000
