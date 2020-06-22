@@ -10,6 +10,18 @@ import time
 #Abre o arquivo .log do programa de otimização
 log = open('../Optimizer-log.txt','w')
 
+gauss_version = 'g09'
+TCC_dir = '/home/matheus/.tcc'
+
+# gauss_version = 'g16' 
+# TCC_dir = '/home/matheus/TCC'
+
+funct = sys.argv[1]
+base = 'aug-cc-PVTz'
+
+log.write("\nFuncional: "+funct+
+        "\nBase: "+base)
+
 def minimo(arr):
     '''Retorna o valor mínimo de um array e sua posição'''
     return (np.amin(arr), np.where(arr == np.amin(arr)))
@@ -45,11 +57,6 @@ def cabecalho(r, np, fu, b, omega=0.0):
                +" int=ultrafine counterpoise=2 Scan\n\nTCC\n\n0 1\n"
 #
 
-funct = sys.argv[1]
-base = 'aug-cc-PVTz'
-
-log.write("\nFuncional: "+funct+
-        "\nBase: "+base)
 
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
@@ -60,18 +67,21 @@ log.write("\nNo. de pontos das curvas angulares: {}".format(M)+
           "\nNo. de pontos das curvas radiais: {}".format(N))
 if interpol: log.write('Pontos adicionais ao redor dos mínimos serão calculados')
 
+nram = '8'
+npro = '8'
+
 print('Gerando Entradas...')
 log.write('\nGerando Entradas...')
-def geraEntradas(omega=0.0):
+def geraEntradas(ram, nproc, omega=0.0):
     '''
     Gera as entradas para o Gaussian com o valor de ômega dado.
     -----------------------------------------------------
     Params:
     
-    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    ram : (str) Quantidade de Memória RAM máxima a ser utilizada nos cálculos.
+    nproc: (str) Número de núcleos do processador a serem usados nos cálculos. 
+    omega = 0.0: (float) Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
     '''
-    ram = '8'
-    nproc = '8'
     #Distâncias (em angstroms) e ângulos (em graus) da geometria do sistema H2O2-Kr
     D = 1.450                   #Distância O-O
     d = 0.966                   #Distância O-H
@@ -85,9 +95,8 @@ def geraEntradas(omega=0.0):
     x = [0.0, 0.0, 0.0, 0.0, 0.0]
     y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1), d*np.sin(chi)*np.cos(teta2), R]
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            
-    if interpol:
-        for t in range(M):
+
+    for t in range(M):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
@@ -99,7 +108,8 @@ def geraEntradas(omega=0.0):
                 h.write('Kr(Fragment=2)   0.    R1    0.')
                 h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
                 h.write("\n")
-
+        
+    if interpol:
         for t in range(M):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
@@ -138,20 +148,7 @@ def geraEntradas(omega=0.0):
                 h.write('Kr(Fragment=2)   0.    R1    0.')
                 h.write('\n Variables:\n R1 3.25 S 10 +0.1\n')
                 h.write("\n")
-    else:
-        for t in range(M):
-            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
-                print(t)
-                for j in range(len(atom)-1):
-                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-                h.write('Kr(Fragment=2)   0.    R1    0.')
-                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
-                h.write("\n")
-
+        
 
 MP4 = np.zeros(21)
 #Lê os logs com os dados da SEP de referência (MP4)
@@ -159,8 +156,19 @@ print('Lendo energias de referência (MP4)...')
 log.write('\n\nLendo energias de referência (MP4)...')
 for k in range(M): #[0,17]: 
     R = np.arange(3,5.1,0.1)
+    R1 = np.arange(3.25,4.25,0.1)
     mp4 = []
     keywords = ['Counterpoise', 'corrected', 'energy']
+    with open('../Logs/Logs/H2O2-Kr_'+str(k)+'.log','r') as g:
+        for line in g:
+            linha = line.split()
+            #print(linha)
+            if linha[:3] == keywords:
+                # print(linha, linha[-1])
+                mp4.append(float(linha[-1]))
+                # print('Energia '+str(k)+':',float(linha[-1]/219474.6305))
+                log.write('\nArquivo '+g.name+' lido com sucesso!')
+
     with open('../Logs/Logs/H2O2-Kr_'+str(k)+'.log','r') as g:
         for line in g:
             linha = line.split()
@@ -188,6 +196,39 @@ count = 0 #Conta o número de iterações do Gaussian
 #     '''TBA'''
 #     return 0
 
+def rodaTudo(gv,dir,fu, interpolation = False):
+    '''
+    Roda todas as entradas geradas na versão do Gaussian especificada.
+    ----------------------------------------------------- 
+    Params:
+
+    gv : (str) Versão do Gaussian (commando de inicialização).
+    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
+    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+    interpolation: (Bool) Habilita a interpolação de pontos ao redor de mínimos.
+    '''
+    for i in range(M):
+        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+        os.system('sleep 10')
+    if interpolation:
+        for i in range(M):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+            os.system('sleep 10')
+        for i in np.arange(8.5, 28.5):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+            os.system('sleep 10')
+        for i in np.arange(8.5, 28.5):
+            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+            os.system('sleep 10')
+
 def SEP(omega):
     '''
     Lê os logs com os dados da SEP a ser otimizada (DFT) e realiza o cálculo da diferença entre esta e a SEP de referência.
@@ -195,17 +236,18 @@ def SEP(omega):
     Params:
     
     omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
-    
     '''
     global R, DFT, MP4, dE, MSE, count
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
     log.write('\n\nIteração no. '+str(count)+' iniciada')
 
-    geraEntradas(omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntradas(nram, npro, omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
+
     t0 = time.time()
-    #os.system('bash roda-um.sh '+funct)  #Executa os cálculos do Gaussian, um por vez.
+    rodaTudo(gauss_version,TCC_dir, funct, interpol)  #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
+    
     log.write('\nIteração no. '+str(count)+' finalizada!'+
             '\nTempo de execução do Gaussian (s): '+str(time.time()-t0)+'\n')
             
@@ -254,9 +296,12 @@ wOpt = resultado['x']# = 0.25 para wb97xd
                      # = 1.35 para lc-blyp
 		             # = 0.55 para lc-wpbe
 
+#Calcula e formata o tempo de execução total
 tfh = int(tf/60/60)
 tfm = int((tf/60/60 - int(tf/60/60))*60)
 str_TF = str(tfh)+'h'+str(tfm)+'min'
+
+#Escreve os resultados finais
 
 print('---RESULTADOS FINAIS---')
 print('-----------------------')
