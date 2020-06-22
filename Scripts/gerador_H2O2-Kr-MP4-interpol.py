@@ -64,7 +64,7 @@ def geraEntradas(omega=0.0):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'_1.com','w') as h:
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'-1.com','w') as h:
                 h.write(cabecalho(ram,nproc,funct,base,omega))
                 print(t)
                 for j in range(len(atom)-1):
@@ -90,7 +90,7 @@ def geraEntradas(omega=0.0):
             x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
+            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'-1.com','w') as h:
                 h.write(cabecalho(ram,nproc,funct,base,omega))
                 print(t)
                 for j in range(len(atom)-1):
@@ -114,6 +114,7 @@ def geraEntradas(omega=0.0):
 
     #Pai, te amo
 
+geraEntradas()
 #0 1
 #O
 #O       1        1.45000
