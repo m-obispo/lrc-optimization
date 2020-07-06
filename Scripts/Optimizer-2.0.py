@@ -36,7 +36,7 @@ def cabecalho(r, np, fu, b, omega=0.0):
     np: (str) Número de núcleos do processador a serem usados nos cálculos. 
     fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
     b: (str) Conjunto de base para os orbitais.
-    omega = 0.0: (float) Valor do parâmetro de longo alcance para funcionais da LRC-DFT
+    omega = 0.0: (float) Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
     '''
     if omega >= 0.0 and omega < 1.0:
         omegaFormat = '0'+str(int(omega*10**9))
@@ -61,18 +61,15 @@ def cabecalho(r, np, fu, b, omega=0.0):
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
-interpol = True #Habilita o modo de interpolação detalhada ao redor de pontos de mínimo
-
 log.write("\nNo. de pontos das curvas angulares: {}".format(M)+
           "\nNo. de pontos das curvas radiais: {}".format(N))
-if interpol: log.write('Pontos adicionais ao redor dos mínimos serão calculados')
 
 nram = '8'
 npro = '8'
 
 print('Gerando Entradas...')
 log.write('\nGerando Entradas...')
-def geraEntradas(ram, nproc, omega=0.0):
+def geraEntradas(ram, nproc, vec_omega = np.zeros(M)):
     '''
     Gera as entradas para o Gaussian com o valor de ômega dado.
     -----------------------------------------------------
@@ -80,7 +77,7 @@ def geraEntradas(ram, nproc, omega=0.0):
     
     ram : (str) Quantidade de Memória RAM máxima a ser utilizada nos cálculos.
     nproc: (str) Número de núcleos do processador a serem usados nos cálculos. 
-    omega = 0.0: (float) Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    omega: (ndarray) Valores dos parâmetros de longo alcance para cada ponto angular a ser otimizado.
     '''
     #Distâncias (em angstroms) e ângulos (em graus) da geometria do sistema H2O2-Kr
     D = 1.450                   #Distância O-O
@@ -101,52 +98,12 @@ def geraEntradas(ram, nproc, omega=0.0):
             y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
             z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
             with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
+                h.write(cabecalho(ram,nproc,funct,base,vec_omega[t]))
                 print(t)
                 for j in range(len(atom)-1):
                     h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
                 h.write('Kr(Fragment=2)   0.    R1    0.')
                 h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
-                h.write("\n")
-        
-    if interpol:
-        for t in range(M):
-            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'_1.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
-                print(t)
-                for j in range(len(atom)-1):
-                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-                h.write('Kr(Fragment=2)   0.    R1    0.')
-                h.write('\n Variables:\n R1 3.25 S 10 +0.1\n')
-                h.write("\n")
-    
-        for t in np.arange(8.5, 28.5):
-            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
-                print(t)
-                for j in range(len(atom)-1):
-                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-                h.write('Kr(Fragment=2)   0.    R1    0.')
-                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
-                h.write("\n")
-
-        for t in np.arange(8.5, 28.5):
-            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(int(10*t))+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,omega))
-                print(t)
-                for j in range(len(atom)-1):
-                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-                h.write('Kr(Fragment=2)   0.    R1    0.')
-                h.write('\n Variables:\n R1 3.25 S 10 +0.1\n')
                 h.write("\n")
         
 
@@ -186,7 +143,7 @@ print('Sucesso!')
 
 print('Declarando parâmetros da otimização...')
 log.write('\n\nDeclarando parâmetros da otimização...')
-vetorUnit = np.repeat(1.,N)
+vetorUnit = np.full(M, 1.)
 #pesoInicial = np.array([1.0*vetorUnit, 2.0*vetorUnit])
 pesoAngular = np.append(np.repeat(0.5, 10), np.append(np.repeat(1.0, 16), np.repeat(0.5, 10)))
 pesoTotal = np.array([x*vetorUnit for x in pesoAngular]) 
@@ -196,56 +153,24 @@ count = 0 #Conta o número de iterações do Gaussian
 #     '''TBA'''
 #     return 0
 
-def rodaTudo(gv,dir,fu, interpolation = False):
-    '''
-    Roda todas as entradas geradas na versão do Gaussian especificada.
-    ----------------------------------------------------- 
-    Params:
 
-    gv : (str) Versão do Gaussian (commando de inicialização).
-    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
-    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
-    interpolation: (Bool) Habilita a interpolação de pontos ao redor de mínimos.
-    '''
-    for i in range(M):
-        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-        os.system('sleep 10')
-    if interpolation:
-        for i in range(M):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-
-def SEP(omega):
+def SEP(vec_omega):
     '''
     Lê os logs com os dados da SEP a ser otimizada (DFT) e realiza o cálculo da diferença entre esta e a SEP de referência.
     -----------------------------------------------------
     Params:
     
-    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    omega: (ndarray) Valores dos parâmetros de longo alcance para cada ponto angular a ser otimizado.
     '''
     global R, DFT, MP4, dE, MSE, count
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
     log.write('\n\nIteração no. '+str(count)+' iniciada')
 
-    geraEntradas(nram, npro, omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntradas(nram, npro, vec_omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
 
     t0 = time.time()
-    rodaTudo(gauss_version,TCC_dir, funct, interpol)  #Executa os cálculos do Gaussian, um por vez.
+    os.system('bash roda-tudo.sh '+funct)               #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
     
     log.write('\nIteração no. '+str(count)+' finalizada!'+
@@ -288,8 +213,11 @@ def SEP(omega):
 #Definindo rotina de otimização
 print('\n\nIniciando otimização...')
 ti = time.time()
-# resultado = minimize(SEP, np.append(0.25, pesoInicial), method="BFGS", options = {'disp':True, 'eps':1e-3})
-resultado = minimize(SEP, 0.25, method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
+
+wInit = 0.25*vetorUnit
+
+# resultado = minimize(SEP, wInit, method="BFGS", options = {'disp':True, 'eps':1e-3})
+resultado = minimize(SEP, wInit, method="Nelder-Mead", options = {'disp':True,'fatol': 1e-7})
 tf = time.time() - ti
 
 wOpt = resultado['x']# = 0.25 para wb97xd
