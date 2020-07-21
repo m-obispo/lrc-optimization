@@ -61,6 +61,11 @@ def cabecalho(r, np, fu, b, omega=0.0):
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
+<<<<<<< HEAD
+=======
+interpol = True #Habilita o modo de interpolação detalhada ao redor de pontos extremos
+
+>>>>>>> interpolation
 log.write("\nNo. de pontos das curvas angulares: {}".format(M)+
           "\nNo. de pontos das curvas radiais: {}".format(N))
 
@@ -153,8 +158,12 @@ count = 0 #Conta o número de iterações do Gaussian
 #     '''TBA'''
 #     return 0
 
+<<<<<<< HEAD
 
 def SEP(vec_omega):
+=======
+def SEP(omega):
+>>>>>>> interpolation
     '''
     Lê os logs com os dados da SEP a ser otimizada (DFT) e realiza o cálculo da diferença entre esta e a SEP de referência.
     -----------------------------------------------------
@@ -166,11 +175,20 @@ def SEP(vec_omega):
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
     log.write('\n\nIteração no. '+str(count)+' iniciada')
+<<<<<<< HEAD
 
     geraEntradas(nram, npro, vec_omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
 
     t0 = time.time()
     os.system('bash roda-tudo.sh '+funct)               #Executa os cálculos do Gaussian, um por vez.
+=======
+    
+    #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntradas(nram, npro, omega)  
+
+    t0 = time.time()
+    os.system('bash roda-tudo-interpol.sh '+funct) #Executa os cálculos do Gaussian, um por vez.
+>>>>>>> interpolation
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
     
     log.write('\nIteração no. '+str(count)+' finalizada!'+
@@ -320,3 +338,37 @@ log.close()
 #   status: 0
 #  success: True
 #        x: array([0.25111888])
+
+#def rodaTudo(gv,dir,fu, interpolation = False):
+#    '''
+#    Roda todas as entradas geradas na versão do Gaussian especificada.
+#    ----------------------------------------------------- 
+#    Params:
+#
+#    gv : (str) Versão do Gaussian (commando de inicialização).
+#    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
+#    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+#    interpolation: (Bool) Habilita a interpolação de pontos ao redor de mínimos.
+#    '''
+#    for i in range(M):
+#        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#        os.system('sleep 10')
+#    if interpolation:
+#        for i in range(M):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+
