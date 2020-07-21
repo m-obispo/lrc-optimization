@@ -128,41 +128,42 @@ def geraEntradasMP4():
 
     #Pai, te amo
 
-def rodaTudo(gv,dir,fu, interpolation = False):
-    '''
-    Roda todas as entradas geradas na versão do Gaussian especificada.
-    ----------------------------------------------------- 
-    Params:
-
-    gv : (str) Versão do Gaussian (commando de inicialização).
-    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
-    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
-    '''
-    for i in range(M):
-        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-        os.system('sleep 10')
-    if interpolation:
-        for i in range(M):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-
 geraEntradasMP4()
 
-rodaTudo(gaussian_version,TCC_dir,funct, interpolation = interpol)
+#def rodaTudo(gv,dir,fu, interpolation = False):
+#    '''
+#    Roda todas as entradas geradas na versão do Gaussian especificada.
+#    ----------------------------------------------------- 
+#    Params:
+#
+#    gv : (str) Versão do Gaussian (commando de inicialização).
+#    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
+#    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+#    '''
+#    for i in range(M):
+#        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#        os.system('sleep 10')
+#    if interpolation:
+#        for i in range(M):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+#
+
+
 
 
 #0 1

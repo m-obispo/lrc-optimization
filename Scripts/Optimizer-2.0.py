@@ -61,7 +61,7 @@ def cabecalho(r, np, fu, b, omega=0.0):
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
-interpol = True #Habilita o modo de interpolação detalhada ao redor de pontos de mínimo
+interpol = True #Habilita o modo de interpolação detalhada ao redor de pontos extremos
 
 log.write("\nNo. de pontos das curvas angulares: {}".format(M)+
           "\nNo. de pontos das curvas radiais: {}".format(N))
@@ -208,11 +208,12 @@ def SEP(omega):
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
     SCF = np.zeros(21)
     log.write('\n\nIteração no. '+str(count)+' iniciada')
-
-    geraEntradas(nram, npro, omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
+    
+    #Gera as entradas a serem utilizadas pelo Gaussian.
+    geraEntradas(nram, npro, omega)  
 
     t0 = time.time()
-    os.system('bash roda-tudo.sh '+funct)               #Executa os cálculos do Gaussian, um por vez.
+    os.system('bash roda-tudo-interpol.sh '+funct) #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
     
     log.write('\nIteração no. '+str(count)+' finalizada!'+
