@@ -196,46 +196,13 @@ count = 0 #Conta o número de iterações do Gaussian
 #     '''TBA'''
 #     return 0
 
-def rodaTudo(gv,dir,fu, interpolation = False):
-    '''
-    Roda todas as entradas geradas na versão do Gaussian especificada.
-    ----------------------------------------------------- 
-    Params:
-
-    gv : (str) Versão do Gaussian (commando de inicialização).
-    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
-    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
-    interpolation: (Bool) Habilita a interpolação de pontos ao redor de mínimos.
-    '''
-    for i in range(M):
-        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-        os.system('sleep 10')
-    if interpolation:
-        for i in range(M):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
-                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
-            os.system('sleep 10')
-        for i in np.arange(8.5, 28.5):
-            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
-            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
-                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
-            os.system('sleep 10')
-
 def SEP(omega):
     '''
     Lê os logs com os dados da SEP a ser otimizada (DFT) e realiza o cálculo da diferença entre esta e a SEP de referência.
     -----------------------------------------------------
     Params:
     
-    omega = 0.0: Valor do parâmetro de longo alcance para funcionais da LRC-DFT.
+    omega: (ndarray) Valores dos parâmetros de longo alcance para cada ponto angular a ser otimizado.
     '''
     global R, DFT, MP4, dE, MSE, count
     #Valor dos pesos do erro médio quadrático para cada coordenada angular
@@ -245,7 +212,7 @@ def SEP(omega):
     geraEntradas(nram, npro, omega)      #Gera as entradas a serem utilizadas pelo Gaussian.
 
     t0 = time.time()
-    rodaTudo(gauss_version,TCC_dir, funct, interpol)  #Executa os cálculos do Gaussian, um por vez.
+    os.system('bash roda-tudo.sh '+funct)               #Executa os cálculos do Gaussian, um por vez.
     print('Tempo de execução do Gaussian (s): ', time.time()-t0)
     
     log.write('\nIteração no. '+str(count)+' finalizada!'+
@@ -392,3 +359,37 @@ log.close()
 #   status: 0
 #  success: True
 #        x: array([0.25111888])
+
+#def rodaTudo(gv,dir,fu, interpolation = False):
+#    '''
+#    Roda todas as entradas geradas na versão do Gaussian especificada.
+#    ----------------------------------------------------- 
+#    Params:
+#
+#    gv : (str) Versão do Gaussian (commando de inicialização).
+#    dir: (str) Diretório de trabalho, i.e. onde se localizam as pastas com as entradas e saídas do Gaussian. 
+#    fu: (str) Funcional da DFT ou método de cálculo a ser empregado.
+#    interpolation: (Bool) Habilita a interpolação de pontos ao redor de mínimos.
+#    '''
+#    for i in range(M):
+#        print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#        os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#        os.system('sleep 10')
+#    if interpolation:
+#        for i in range(M):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'.com '+\
+#                     dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'.log &')
+#            os.system('sleep 10')
+#        for i in np.arange(8.5, 28.5):
+#            print('Rodando a entrada {0} no Gaussian {1}...'.format(i, gv[1:]))
+#            os.system(gv+dir+'/Inputs/Inputs-'+fu+'/H2O2-Kr_'+str(i)+'-1.com '+\
+#                         dir+'Logs/Logs-'+fu+'/H2O2-Kr_'+str(i)+'-1.log &')
+#            os.system('sleep 10')
+
