@@ -10,9 +10,6 @@ import time
 #Abre o arquivo .log do programa de otimização
 log = open('../Optimizer-log.txt','w')
 
-gauss_version = 'g09'
-TCC_dir = '/home/matheus/.tcc'
-
 # gauss_version = 'g16' 
 # TCC_dir = '/home/matheus/TCC'
 
@@ -56,8 +53,6 @@ def cabecalho(r, np, fu, b, omega=0.0):
         return "%mem="+r+"GB\n%nproc="+np+"\n#p "+fu+"/"+b \
                +" int=ultrafine counterpoise=2 Scan\n\nTCC\n\n0 1\n"
 #
-
-
 M = 36 #No. de pontos das curvas angulares
 N = 21 #No. de pontos das curvas radiais
 
@@ -96,17 +91,17 @@ def geraEntradas(ram, nproc, vec_omega = np.zeros(M)):
     z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
 
     for t in range(M):
-            x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
-            y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
-            z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
-            with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
-                h.write(cabecalho(ram,nproc,funct,base,vec_omega[t]))
-                print(t)
-                for j in range(len(atom)-1):
-                    h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
-                h.write('Kr(Fragment=2)   0.    R1    0.')
-                h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
-                h.write("\n")
+        x = [0.0, 0.0, d*np.sin(chi)*np.sin(teta1+dTeta*t), d*np.sin(chi)*np.sin(teta2), 0.0]
+        y = [0.0, 0.0, d*np.sin(chi)*np.cos(teta1+dTeta*t), d*np.sin(chi)*np.cos(teta2), 0.0]#R-t*dR
+        z = [D/2, -D/2, D/2 - d*np.cos(chi), - D/2 + d*np.cos(chi), 0.0]
+        with open('../Inputs/Inputs-'+funct+'/H2O2-Kr_'+str(t)+'.com','w') as h:
+            h.write(cabecalho(ram,nproc,funct,base,vec_omega[t]))
+            print(t)
+            for j in range(len(atom)-1):
+                h.write(atom[j]+"(Fragment=1)   "+str(x[j])+"  "+str(y[j])+"  "+str(z[j])+"\n")
+            h.write('Kr(Fragment=2)   0.    R1    0.')
+            h.write('\n Variables:\n R1 3.0 S 20 +0.1\n')
+            h.write("\n")
         
 
 MP4 = np.zeros(21)
@@ -227,9 +222,10 @@ wOpt = resultado['x']# = 0.25 para wb97xd
 		             # = 0.55 para lc-wpbe
 
 #Calcula e formata o tempo de execução total
-tfh = int(tf/60/60)
-tfm = int((tf/60/60 - int(tf/60/60))*60)
-str_TF = str(tfh)+'h'+str(tfm)+'min'
+h = tf//3600
+m = (tf%3600)//60
+s = (tf%3600)%60
+str_TF = "{}h:{}m:{}s".format(h,m,s)
 
 #Escreve os resultados finais
 
